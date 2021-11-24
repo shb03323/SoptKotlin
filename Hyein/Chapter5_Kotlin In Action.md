@@ -274,3 +274,205 @@
     - 모든 중첩된 리스트의 원소를 한 리스트로 모아야 한다
   - **flatten**
     - 특별히 변환해야할 내용이 없고 리스트를 평평하게 펼치기만 하면 된다.
+
+
+
+***
+
+
+
+#### 5.3 지연 계산(lazy) 컬렉션 연산
+
+- eagerly / lazy
+
+  - 즉시 계산
+
+    ex) map, filter
+
+    - 결과 컬렉션을 즉시 생성
+
+  - 지연 게산
+
+    ex) sequence
+
+    - **시퀀스** : 중간 임시 컬렉션 생성 :x:
+
+      :arrow_forward: 효율저
+
+      - **Sequence 인터페이스**
+        - `iterator` 라는 단 하나의 메소드가 존재
+
+- **Sequence**
+
+  - 강점 : 인터페이스 위에 구현된 연산이 계산을 수행하는 방법에 있다
+
+    - 시퀀스의 원소, **필요할 때 계산 된다**
+
+      :arrow_forward: 중간 처리 결과 저장 :x:
+
+  - `asSequence` : 어떤 컬렉션이든 **시퀀스**로 바꿀 수 있다.
+
+    - 시퀀스가 항상 훨씬 더 나은 것은 아니다
+
+  - 컬렉션에 들어있는 원소가 많으면 중간 원소를 재배열 하는 비용이 커진다
+
+    :arrow_forward: 지연 계산 효율적
+
+    
+
+##### 5.3.1 시퀀스 연산 실행: 중간 연산과 최종 연산
+
+- **시퀀스 연산**
+
+  - **중간 연산**
+    - 다른 시퀀스 반환
+    - 최초 시퀀스의 원소를 변환하는 방법을 안다
+    - **항상 지연 계산**
+  - **최종 연산**
+    - 결과를 반환
+    - 결과는 최초 컬렉션에 대해 변환을 적용한 시퀀스로부터 일련의 계산을 수행해 얻을 수 있는 **컬렉션, 원소, 숫자, 객체** 이다.
+    - 연기됐던 모든 계산이 수행된다
+
+  ``````kotlin
+  listOf(1,2,3,4).asSequence()
+  	.map {print("map($it) "); it*it} // 중간연산
+  	.filter {print("filter($it) "); it%2 == 0} // 중간연산
+  	.toList() 	// 최종연산
+  ``````
+
+  - 연산
+    - 직접 연산 : 모든 원소 map -> filter
+    - 지연 연산 : 한 원소 map->filter
+
+
+
+##### 5.3.2 시퀀스 만들기
+
+- **시퀀스 생성**
+
+  - `asSequence()`
+
+  - `generateSequence()`
+
+    - 이전의 원소를 인자로 받아 다음 원소를 계산
+
+    ``````kotlin
+    val naturalNumbers = generateSequence(0) {it+1}
+    val numbersTo100 = naturalNumbers.takeWhile {it <= 100}
+    numbersTo100.sum() // 최종 연산
+    ``````
+
+
+
+***
+
+
+
+#### 5.4. 자바 함수형 인터페이스 활용
+
+- 코틀린
+
+  - 무명 클래스 인스턴스 대신 **람다**를 넘길 수 있다
+
+    ``````kotlin
+    button.setOnClickListenter {view -> ...}
+    ``````
+
+    - 작동 이유 : OnClickListener에 추상메소드가 단 하나 존재
+
+      :arrow_forward: **함수형 인터페이스** or **SAM 인터페이스**
+
+      - **SAM** : 단일 추상 메소드
+
+
+
+##### 5.4.1 자바 메소드에 람다를 인자로 전달
+
+- 람다 인자
+  - 컴파일러는 자동으로 람다를 무명클래스의 인스턴스로 변환 가능
+
+- 람다 / 무명 객체 차이
+  - **객체 명시 선언** : 메소드를 호출할 때마다 새로운 객체 생성
+  - **람다** : 람다에 대응하는 무명 객체 메소드를 호출할 때마다 반복 사용
+- **inline**
+  - inline으로 표시된 코틀린 함수에게 람다를 넘기면 아무런 무명 클래스도 만들어지지 않는다
+
+
+
+##### 5.4.2 SAM 생성자: 람다를 함수형 인터페이스로 명시적으로 변경
+
+- **SAM 생성자**
+
+  - 람다를 함수형 인터페이스의 인스턴스로 변환할 수 있게 컴파일러가 자동으로 생성한 함수
+  - 컴파일러가 자동으로 람다를 함수형 인터페이스 무명 클래스로 바꾸지 못하는 경우 **SAM 생성자** 사용 가능
+
+  - 이름 : 사용하려는 함수형 인터페이스의 이름과 같다
+
+  ```````kotlin
+  fun createAllDoneRunnalbe() : Runnalbe {
+      return Runnable {println("All done!")}
+  }
+  
+  >>> createAllDoneRunnable().run()
+  All done!
+  ```````
+
+  
+
+****
+
+
+
+#### 5.5 수신 객체 지정 람다: with와 apply
+
+- **수신 객체 지정 람다**
+
+  : 수신 객체를 명시하지 않고 람다의 본문 안에서 다른 객체의 메소드를 호출할 수 있게 하는 람다
+
+  - `with`
+  - `apply`
+
+
+
+##### 5.5.1 with 함수
+
+- `with`
+
+  - 객체의 이름을 반복하지 않고 그 객체에 대해 다양한 연산을 수행할 수 있다
+
+    ``````kotlin
+    fun alphabet() = with(stringBuilder()){ // 수신 객체 지정
+        for (letter in 'A'..'Z')
+    		this.append(letter) // this는 수신객체 의미
+    
+    	append("\nNow I know the alphabet!")
+    	this.toString() // 반환값
+    }
+    ``````
+
+  - 두 개의 파라미터 존대
+    - 수신 객체
+    - 람다
+  - 반환값
+    - 람다 코드를 실행한 값 (마지막 식의 값)
+
+  
+
+##### 5.5.2 apply 함수
+
+- `apply`
+
+  - with 과의 차이 : 자신에게 전달된 객체(수신객체)를 반환
+
+  - 객체의 인스턴스를 만들면서 즉시 프로퍼티 중 일부를 초기화해야 하는 경우 유용하다
+
+    ``````kotlin
+    fun alphabet() = stringBuilder().apply { // 수신 객체 지정
+        for (letter in 'A'..'Z')
+    		this.append(letter) // this는 수신객체 의미
+    
+    	append("\nNow I know the alphabet!")
+    }.toString()
+    ``````
+
+    
